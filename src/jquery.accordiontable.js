@@ -26,7 +26,7 @@
             // Tempalte markup for close button
             closeButton: '<a href="#" class="close trigger">close</a>',
             // Copy TH from trigger row?
-            copyHeaders: true,
+            copyHeaders: false,
             // Visible row selector
             parentSelector: 'tr.parent',
             // Detail row selector
@@ -37,12 +37,12 @@
             //   animation (can't animate table elements).
             detailWrapperClass: '.drawer',
             // Whole row is a trigger for details?
-            wholeRowToggles: false,
+            wholeRowToggles: true,
             // Calcualte columns automatically?
             //   Don't need. Make smarter
             calculateColspan: true,
             // Detail row will obscure/hide parent row?
-            obscureParent: true,
+            obscureParent: false,
             // Callbacks
             afterEachRow: false, // function ( row ) {},
             afterAll: false, // function ( objs ) {},
@@ -59,12 +59,11 @@
             var options = _this.options;
             this.parentRows = $(this.element.find( options.parentSelector ));
             this.detailRows = $(this.element.find( options.detailSelector ));
-            console.log( this.parentRows );
+            var eventElement = ( options.wholeRowToggles ) ? options.parentSelector : options.detailTrigger;
 
             // Setup each row
             $.each( this.parentRows, function( i, el ) {
                 var $pRow = $(el);
-                console.log( $pRow );
                 var $dRow = $pRow.next( options.detailSelector );
                 var $rowPair = $pRow.add($dRow);
                 var $dTd = $dRow.find('td');
@@ -110,12 +109,16 @@
                         $this.parents('tr').data( 'parentRow' ).find('.trigger').click();
                     });
                 }
+                // if whole row is the trigger?
+                if ( options.wholeRowToggles ) {
+                    _this.parentRows.css('cursor', 'pointer');
+                }
                 // Execute callback after each row is processed
-                // this._trigger( 'afterEachRow', $rowPair );
+                // _this._trigger( 'afterEachRow', $rowPair );
             });
 
             // Events
-            this.element.find( options.parentSelector ).on('click', function( e ) {
+            $(document).on('click', eventElement, function( e ) {
                 e.preventDefault();
                 var $this = $(this);
                 var $detail = $this.data( 'detailRow' );
@@ -131,13 +134,15 @@
             });
 
             // Internal events
+        if ( false ) {
             console.log('starting internal events');
-            // for ( event in this._events ) {
-            //     if ( this._events.hasOwnProperty( event ) ) {
-            //         this.element.on( event, this._events[event] );
-            //     }
-            // }
+            for ( event in _this._events ) {
+                if ( _this._events.hasOwnProperty( event ) ) {
+                    _this.element.on( event, _this._events[event] );
+                }
+            }
             console.log('done setting up internal event listeners');
+        }
 
             // Execute callback after the table is processed
             // this._trigger( 'afterAll', this.element );
@@ -145,7 +150,7 @@
 
         // Determine if we're sliding, fading, or toggling,and what direction.
         // TODO: Figure out a way to cache this? Maybe currying?
-        _getAnimationMethod: function( state ) {
+        _getToggleMethod: function( state ) {
             switch ( this.options.animation ) {
                 case 'fade':
                     return ( state === 'show' ) ? 'fadeIn' : 'fadeOut';
@@ -156,26 +161,30 @@
             }
         },
         _showDetail: function( $parent, $detail, state ) {
+            var _this;
             $detail.add($parent)
                 .removeClass( collapsedClass )
-                .addClass( expandedClass )
+                .addClass( expandedClass );
+            _this = this;
             // Toggle parent row visibility?
-            // ( this.options.obscureParent ) && $parent.toggle();
-            $detail.find( this.options.detailWrapperClass )
-                [ this._getAnimationMethod( state ) ]( this.options.speed, function() {
-                    // this._trigger('afterShow');
+            ( _this.options.obscureParent ) && $parent.hide();
+            $detail.find( _this.options.detailWrapperClass )
+                [ _this._getToggleMethod( state ) ]( _this.options.speed, function() {
+                    // _this._trigger('afterShow');
                 });
         },
         _hideDetail: function( $parent, $detail, state ) {
+            var _this;
             // Toggle detail row visibility
-            $detail.find( this.options.detailWrapperClass )
-                [ this._getAnimationMethod( state ) ]( this.options.speed, function() {
+            _this = this;
+            $detail.find( _this.options.detailWrapperClass )
+                [ _this._getToggleMethod( state ) ]( _this.options.speed, function() {
                     $detail.add($parent)
                         .addClass( collapsedClass )
-                        .removeClass( expandedClass )
+                        .removeClass( expandedClass );
                     // Toggle parent row visibility?
-                    ( this.options.obscureParent ) && $parent.toggle();
-                    // this._trigger('afterHide');
+                    ( _this.options.obscureParent ) && $parent.show();
+                    // _this._trigger('afterHide');
                 });
         },
 

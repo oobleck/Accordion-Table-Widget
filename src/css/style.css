@@ -1,0 +1,19 @@
+* {
+	-o-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	box-sizing: border-box;
+}
+body {
+	font: 16px/1.5 Verdana, sans-serif;
+}
+table.expandable {
+	width: 800px;
+	margin: 0 auto;
+	border: 1px solid #aaa;
+}
+
+tr.parent:nth-child(odd) {
+	background: #ddd;
+}
+td, th {}
