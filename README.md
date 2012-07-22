@@ -3,9 +3,9 @@
 ## Work in Progress. This isn't even alpha state yet. Lots of bugs!
 
 ## TODO
-* wire up UI css classes: 50% done
+* Easing option bunk. No errors, but doens't work. ?
+* Doesn't respect pre-widget colspans when destroying widget. Yet.
 * X-browser test! (IE8+ in plugin form)
 * remove handling of immutable options post-init
 * unit test?
-* test with jqui theme
 * JSDoc (or other)!

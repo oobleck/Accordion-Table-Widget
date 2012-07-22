@@ -1,5 +1,7 @@
 ;(function($) {
-    options = {};
+    options = {
+        // wholeRowTrigger: false
+    };
     tmp = $('table.expandable').accordionTable( options );
     $(document)
         .on('click', '.toggleWidget', function( e ) {

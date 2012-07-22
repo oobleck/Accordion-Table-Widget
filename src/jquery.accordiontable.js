@@ -11,7 +11,7 @@
 * Depends:
 *   jquery.js 1.7
 *   jquery.ui.core.js 1.8
-*   jquery.ui.widget.js <version>
+*   jquery.ui.widget.js 1.8
 */
 ;(function ($) {
     var _parent = $.Widget;
@@ -19,7 +19,10 @@
     // Hash of available UI classes
     var uiClasses = {
         closeClass: 'ui-close',
+        closeIconClass: 'ui-icon ui-icon-closethick',
         widgetContainer: 'ui-widget',
+        widgetContentContainer: 'ui-widget-content',
+        stateHighlight: 'ui-state-highlight',
         stateCollapsed: 'ui-state-collapsed',
         stateExpanded: 'ui-state-expanded',
         stateDefault: 'ui-state-default',
@@ -41,7 +44,9 @@
             // Animation type (slide, toggle, or fade)
             animation: 'slide',
             // Animation speed
-            speed: 200,
+            speed: 275,
+            // Easing type
+            easing: 'easeOutBounce',
             // Add a close button?
             addClose: true,
             // Tempalte markup for close button
@@ -81,11 +86,12 @@
             // var $elem = this.element;
             var _this = this;
             var options = _this.options;
+            var $table = $(this.element);
             this.parentRows = $(this.element.find( options.parentSelector ));
             this.detailRows = $(this.element.find( options.detailSelector ));
             var eventElement = ( options.wholeRowTrigger ) ? options.parentSelector : options.detailTrigger;
 
-            $(this.element).addClass( uiClasses.widgetContainer );
+            $table.addClass( uiClasses.widgetContainer );
             // Setup each row
             $.each( this.parentRows, function( i, el ) {
                 var $pRow = $(el);
@@ -110,13 +116,15 @@
                 }
                 // wrap the contents with a hidden div for animation
                 if ( !$dTd.find( options.detailWrapperClass ).length ) {
-                    $dTd.wrapInner('<div class="' + drawerClass + '" />');
+                    $dTd.wrapInner('<div class="' + [ drawerClass, uiClasses.widgetContentContainer ].join(' ') + '" />');
                     ( options.initCollapsed ) && $dTd.find( options.detailWrapperClass ).hide();
+                } else {
+                    $dRow.addClass( uiClasses.widgetContentContainer );
                 }
                 // Add the close button to the detail view?
                 if ( options.addClose ) {
                     $closeElement = $(options.closeButton);
-                    $closeElement.addClass( uiClasses.closeClass );
+                    $closeElement.addClass( [ uiClasses.closeClass, uiClasses.closeIconClass ].join(' ') );
                     $dTd.find( options.detailWrapperClass ).append( $closeElement );
                 }
                 // Set colspan if one isn't provided?
@@ -132,20 +140,27 @@
                 // if whole row is the trigger?
                 if ( options.wholeRowTrigger ) {
                     _this.parentRows.css('cursor', 'pointer');
+                    // Add default jquery ui state class to the trigger
+                    $pRow.addClass( uiClasses.stateDefault );
+                } else {
+                    // Add default jquery ui state class to the trigger
+                    $( options.detailTrigger, $pRow ).addClass( uiClasses.stateDefault );
                 }
+
                 // Execute callback after each row is processed
                 _this._trigger( 'afterEachRow', $rowPair );
             });
 
             // Events
             $(document)
+                // Toggle the detail row
                 .on('click.'+ widgetName, eventElement, function( e ) {
                     e.preventDefault();
                     var $this = $(this);
                     var $detail = $this.data( 'detailRow' );
                     var $parent = $detail.data( 'parentRow' );
                     var state = ( $detail.find( options.detailWrapperClass ).is(':hidden') ) ? 'show' : 'hide';
-                    // Fire one of the methods
+                    // Fire one of the two methods
                     if ( state === 'show' ) {
                         _this._showDetail.apply(_this, [ $parent, $detail, state ]);
                     } else {
@@ -153,16 +168,33 @@
                     }
                     return e;
                 })
-                .on('mouseenter.'+widgetName, eventElement, function( e ) {
+                /* Add jqui classes to *.ui-default-state.  */
+                // hovered state
+                .on('mouseenter.'+widgetName, '.'+uiClasses.stateDefault, function( e ) {
                     e.preventDefault();
                     $(this)
                         .addClass( uiClasses.stateHover )
                         .removeClass( uiClasses.stateDefault );
                 })
-                .on('mouseleave.'+widgetName, eventElement, function( e ) {
+                // cleanup hovered state
+                .on('mouseleave.'+widgetName, '.'+uiClasses.stateHover, function( e ) {
                     e.preventDefault();
                     $(this)
                         .removeClass( uiClasses.stateHover )
+                        .addClass( uiClasses.stateDefault );
+                })
+                // active/focused state
+                .on('mousedown.'+widgetName, '.'+uiClasses.stateHover, function( e ) {
+                    e.preventDefault();
+                    $(this)
+                        .addClass( [ uiClasses.stateActive, uiClasses.stateFocus ].join(' ') )
+                        .removeClass( uiClasses.stateDefault );
+                })
+                // cleanup active/focused state
+                .on('mouseup.'+widgetName, '.'+uiClasses.stateActive, function( e ) {
+                    e.preventDefault();
+                    $(this)
+                        .removeClass( [ uiClasses.stateActive, uiClasses.stateFocus ].join(' ') )
                         .addClass( uiClasses.stateDefault );
                 });
 
@@ -201,34 +233,47 @@
         },
         _showDetail: function( $parent, $detail, state ) {
             var _this;
+            _this = this;
+            var options = {
+                duration: _this.options.speed,
+                complete: function() {
+                    _this._trigger('afterShow');
+                }
+            };
+            if ( $.easing && _this.options.easing ) {
+                options.method = _this.options.easing;
+            }
             $detail.add($parent)
                 .removeClass( uiClasses.stateCollapsed )
-                .addClass( uiClasses.stateExpanded );
-            _this = this;
+                // .addClass( uiClasses.stateExpanded ); //uiClasses.stateHighlight
+                .addClass( [uiClasses.stateExpanded, uiClasses.stateHighlight ].join(' ') );
             // Toggle parent row visibility?
             ( _this.options.obscureParent ) && $parent.hide();
             $detail.find( _this.options.detailWrapperClass )
-                [ _this._getToggleMethod( state ) ]( _this.options.speed, function() {
-                    _this._trigger('afterShow');
-                });
+                [ _this._getToggleMethod( state ) ]( options );
         },
         _hideDetail: function( $parent, $detail, state ) {
             var _this;
             // capture the widget object
             _this = this;
-            // Toggle detail row visibility
-            $detail.find( _this.options.detailWrapperClass )
-                [ _this._getToggleMethod( state ) ]( _this.options.speed, function() {
+            var options = {
+                duration: _this.options.speed,
+                complete: function() {
                     $detail.add($parent)
                         .addClass( uiClasses.stateCollapsed )
-                        .removeClass( uiClasses.stateExpanded );
+                        // .removeClass( uiClasses.stateExpanded ); //uiClasses.stateHighlight
+                        .removeClass( [uiClasses.stateExpanded, uiClasses.stateHighlight ].join(' ') );
                     // Toggle parent row visibility?
                     ( _this.options.obscureParent ) && $parent.show();
                     _this._trigger('afterHide');
-                });
-        },
-        _hover: function( e ) {
-            // toggle .ui-state-hover class
+                }
+            };
+            if ( $.easing && _this.options.easing ) {
+                options.method = _this.options.easing;
+            }
+            // Toggle detail row visibility
+            $detail.find( _this.options.detailWrapperClass )
+                [ _this._getToggleMethod( state ) ]( options );
         },
 
         // Setup
@@ -273,6 +318,7 @@
         // Remove and cleanup after the widget. Unbind events, serialize data, remove HTML components
         destroy: function() {
             var _this = this;
+            var $widg = $(this.element);
             this.detailRows.each(function(i, el) {
                 var $row = $(el);
                 var $tds = $('td', $row);
@@ -291,23 +337,26 @@
             // Remove close buttons
             if ( _this.options.addClose ) {
                 // remove close button
-                $(this.element).find('.'+uiClasses.closeClass).detach();
+                $widg.find('.'+uiClasses.closeClass).detach();
             }
             // Remove drawer wrappers
             if ( _this.options.detailWrapperClass ) {
-                $(this.element).find( _this.options.detailWrapperClass ).children().unwrap();
+                $widg.find( _this.options.detailWrapperClass ).children().unwrap();
             }
 
             // Remove UI classes
             this.parentRows.add(this.detailRows)
                 .css( 'cursor', '' )
-                .removeClass( uiClasses.manifest.join(' ') )
+                // .removeClass( uiClasses.manifest.join(' ') )
                 .show();
+            console.log ( uiClasses.manifest );
+            $( '.'+uiClasses.manifest.join(', .'), $widg).removeClass( uiClasses.manifest.join(' ') );
+            $widg.removeClass( uiClasses.widgetContainer );
 
             // Unbind general UI events
             $(document).unbind( '.'+widgetName );
 
-            $(this.element).removeClass( uiClasses.widgetContainer );
+            $widg.removeClass( uiClasses.widgetContainer );
             // Call parent method
             this._trigger('afterDestroy');
             _parent.prototype.destroy.call(this);

@@ -59,16 +59,15 @@ body {
 	font: 12px/1.5 Verdana, sans-serif;
 }
 table.expandable {
-	width: 800px;
 	margin: 0 auto;
-	border: 1px solid #aaa;
+	/*border: 1px solid #aaa;*/
+	width: 800px;
 	vertical-align: baseline;
 }
 
 td, th {
 	position: relative;
 }
-
 button, .button {
 	display: inline-block;
 	text-decoration: none;
@@ -82,10 +81,10 @@ button span, .button span {
 }
 tr.ui-state-collapsed {
 	background: inherit;
-	border-bottom: 1px solid #ddd;
+	/*border-bottom: 1px solid #ddd;*/
 }
 tr.ui-state-expanded {
-	background: #ddd;
+	/*background: #ddd;*/
 }
 tr.ui-state-expanded .ui-close {
 	position: absolute;
